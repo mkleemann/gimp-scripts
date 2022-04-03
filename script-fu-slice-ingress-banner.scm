@@ -6,7 +6,7 @@
 ; ================= The function bodies - it's where the work is done ================
 
 ; creates a mask to show the content of the single badges when shown in the scanner application.
-(define (script-fu-ingress-banner-mask inImg inRows inRaster)
+(define (script-fu-ingress-banner-mask inImg inRows inRaster inGapSize inGaps)
   (let* (
         (bannerRows inRows)
         (theRaster inRaster)
@@ -32,13 +32,26 @@
         (while (> cntCols 0)
           (begin
             (set! cntCols (- cntCols 1))
-            (gimp-image-select-ellipse
-              inImg
-              CHANNEL-OP-ADD
-              (* cntCols theRaster)
-              (* bannerRows theRaster)
-              theRaster
-              theRaster)
+            (if (= inGaps TRUE)
+              (begin
+                (gimp-image-select-ellipse
+                   inImg
+                   CHANNEL-OP-ADD
+                   (+ (* cntCols theRaster) (* inGapSize cntCols))
+                   (+ (* bannerRows theRaster) (* inGapSize bannerRows))
+                   theRaster
+                   theRaster)
+              )
+              (begin
+                (gimp-image-select-ellipse
+                   inImg
+                   CHANNEL-OP-ADD
+                   (* cntCols theRaster)
+                   (* bannerRows theRaster)
+                   theRaster
+                   theRaster)
+              )
+            )
           )
         )
         (set! cntCols 6)                                ; start over columns
@@ -56,7 +69,7 @@
 )
 
 ; sets the guides for slicing (Note: It does not remove any previously set guides, so be careful)
-(define (script-fu-ingress-banner-set-guides inImg inRows inRaster inResizeImage inCropOrExtend inMask)
+(define (script-fu-ingress-banner-set-guides inImg inRows inRaster inGapSize inResizeImage inCropOrExtend inMask inGaps)
   (let* (
         (bannerRows inRows)
         (theRaster inRaster)
@@ -81,11 +94,24 @@
     (gimp-context-set-transform-direction TRANSFORM-FORWARD)
     (gimp-context-set-interpolation INTERPOLATION-CUBIC)
     (gimp-context-set-transform-resize TRANSFORM-RESIZE-ADJUST)
-    ;(script-fu-guides-remove RUN-NONINTERACTIVE inImg 0) ; remove any old guides - has issues with closeall!
+; **** guide functions have issues with undo stack after closing first or all images prior ****
+;    ; check for already set guides and remove them
+;    (if (= (car (gimp-image-find-next-guide inImg 0)) 0)
+;      (begin
+;        (script-fu-guides-remove RUN-NONINTERACTIVE inImg 0)
+;      )
+;    )
+; *********************************************************************************************
 
     ; check image height/width if it fits to the given raster
     ; the width takes precedence, because it's always 6x raster
     ; crop/extend the bottom of the image, if it doesn't fit the raster
+    (if (= inGaps TRUE)
+      (begin
+        (set! rasterWidth (+ rasterWidth (* inGapSize 5)))
+        (set! rasterHeight (+ rasterHeight (* inGapSize (- bannerRows 1))))
+      )
+    )
 
     ; use raster to adjust image based on width
     (if (= resizeToFit TRUE)
@@ -95,7 +121,7 @@
             (< imgWidth rasterWidth)
             (> imgWidth rasterWidth))
           (begin
-            ; resizing image to fit 6x raster
+            ; resizing image to fit 6x raster w/ or w/o gaps
             (set! imgWidth rasterWidth)
             (set! imgHeight (* resizeRatio imgHeight))
             (gimp-image-scale inImg imgWidth imgHeight)
@@ -108,9 +134,18 @@
         (if (< imgWidth rasterWidth)
           (begin
             ; use image width to determine new raster size
-            (set! theRaster (/ imgWidth 6))
-            (set! rasterWidth (* theRaster 6))
-            (set! rasterHeight (* theRaster bannerRows))
+            (if (= inGaps TRUE)
+              (begin
+                (set! theRaster (/ (- imgWidth (* inGapSize 5)) 6))
+                (set! rasterWidth (+ (* inGapSize 5) (* theRaster 6)))
+                (set! rasterHeight (+ (* bannerRows theRaster) (* inGapSize (- bannerRows 1))))
+              )
+              (begin
+                (set! theRaster (/ imgWidth 6))
+                (set! rasterWidth (* theRaster 6))
+                (set! rasterHeight (* theRaster bannerRows))
+              )
+            )
           )
         )
         ; use the raster as set and add a vertical guide (image larger than 6x raster width)
@@ -122,6 +157,7 @@
         )
       )
     )
+
     ; check if height fits and crop/extend is need
     (if (< imgHeight rasterHeight)
       ; image needs extension or cropped to one row less
@@ -130,21 +166,39 @@
           ; crop
           (begin
             ; determine how many tiles fit into height
-            (while (> cntRows 0)
+            (if (= inGaps TRUE)
+              ; w/ gaps
               (begin
-                (if (> (* cntRows theRaster) imgHeight)
-                  (begin
-                    (set! cntRows (- cntRows 1))
-                  )
-                  (begin
-                    (set! bannerRows cntRows)
-                    (set! cntRows 0)
+                (while (> cntRows 0)
+                  (if (> (+ (* cntRows theRaster) (* inGapSize (- cntRows 1))) imgHeight)
+                    (begin
+                      (set! cntRows (- cntRows 1))
+                    )
+                    (begin
+                      (set! bannerRows cntRows)
+                      (set! cntRows 0)
+                    )
                   )
                 )
+                (set! imgHeight (+ (* theRaster bannerRows) (* inGapSize (- bannerRows 1))))
+              )
+              ; w/o gaps
+              (begin
+                (while (> cntRows 0)
+                  (if (> (* cntRows theRaster) imgHeight)
+                    (begin
+                      (set! cntRows (- cntRows 1))
+                    )
+                    (begin
+                      (set! bannerRows cntRows)
+                      (set! cntRows 0)
+                    )
+                  )
+                )
+                ; now crop
+                (set! imgHeight (* theRaster bannerRows))
               )
             )
-            ; now crop
-            (set! imgHeight (* theRaster bannerRows))
           )
           ; extend
           (begin
@@ -153,34 +207,66 @@
         )
       )
     )
+
     (if (> imgHeight rasterHeight)
       ; image needs cropping, regardless of user choice
       (begin
         (set! imgHeight rasterHeight)
       )
     )
+;    (gimp-message (string-append "Width: " (number->string imgWidth) " Height: " (number->string imgHeight)))
+
     (gimp-image-resize inImg imgWidth imgHeight 0 0)
+
+;    (gimp-message "Resize done!")
 
     ; now create a mask, if necessary
     (if (= createMask TRUE)
       (begin
-        (script-fu-ingress-banner-mask inImg bannerRows theRaster)
+        (script-fu-ingress-banner-mask inImg bannerRows theRaster inGapSize inGaps)
       )
     )
 
-    ; set vertical guides
-    (while (> cntGuides 0)
-       (gimp-image-add-vguide inImg (* theRaster cntGuides))
-       (set! cntGuides (- cntGuides 1))
-    )
-    ; set horizontal guides
-    (while (> bannerRows 0)
-       (set! bannerRows (- bannerRows 1)) ; intended to be here!
-       (if (> bannerRows 0)               ; we don't need a guide at 0
-         (begin
-           (gimp-image-add-hguide inImg (* theRaster bannerRows))
-         )
-       )
+    ; set guides
+    (if (= inGaps TRUE)
+      (begin
+        ; set vertical guides
+        (while (> cntGuides 0)
+          (if (< cntGuides 6)
+            (begin
+              (gimp-image-add-vguide inImg (+ (* theRaster cntGuides) (* inGapSize cntGuides)))
+            )
+          )
+          (gimp-image-add-vguide inImg (+ (* theRaster cntGuides) (* inGapSize (- cntGuides 1))))
+          (set! cntGuides (- cntGuides 1))
+        )
+        ; set horizontal guides
+        (while (> bannerRows 0)
+          (set! bannerRows (- bannerRows 1)) ; intended to be here!
+          (if (> bannerRows 0)               ; we don't need a guide at 0
+            (begin
+              (gimp-image-add-hguide inImg (+ (* theRaster bannerRows) (* inGapSize (- bannerRows 1))))
+              (gimp-image-add-hguide inImg (+ (* theRaster bannerRows) (* inGapSize bannerRows)))
+            )
+          )
+        )
+      )
+      (begin
+          ; set vertical guides
+        (while (> cntGuides 0)
+          (gimp-image-add-vguide inImg (* theRaster cntGuides))
+          (set! cntGuides (- cntGuides 1))
+        )
+        ; set horizontal guides
+        (while (> bannerRows 0)
+          (set! bannerRows (- bannerRows 1)) ; intended to be here!
+          (if (> bannerRows 0)               ; we don't need a guide at 0
+            (begin
+              (gimp-image-add-hguide inImg (* theRaster bannerRows))
+            )
+          )
+        )
+      )
     )
 
     ; cleanup
@@ -191,51 +277,89 @@
 )
 
 ; the actual slicing and saving of the slices as png files
-(define (script-fu-ingress-slicer inImg inBName inDir)
+(define (script-fu-ingress-slicer inImg inBName inDir inGaps)
   (let*
     (
     (slices (cadr (plug-in-guillotine RUN-NONINTERACTIVE inImg 0))) ; list of created slices
     (curSlice 0)
     (curIdx 0)
     (numOfSlices (vector-length slices))
+    (rows (/ numOfSlices 11))
+    (imgIdx 0)
+    (rowIdx 0)
+    (numOfImg numOfSlices)
     (fileName inBName)
     )
+    ; get the number of images we want to keep, if gaps are present
+    (if (= inGaps TRUE)
+      (begin
+        (set! numOfImg (* (/ (+ rows 1) 2) 6))
+      )
+    )
+
     ; slice is done, now create files
     (while (> numOfSlices curIdx)
       (set! curSlice (vector-ref slices curIdx))
-      (set! fileName (string-append inDir "/" inBName "-" (number->string (- numOfSlices curIdx)) ".png"))
-      (gimp-image-flatten curSlice)
-      (file-png-save-defaults RUN-NONINTERACTIVE curSlice (car (gimp-image-get-active-drawable curSlice)) fileName fileName)
+      (if (= inGaps TRUE)
+        (begin
+          (if (and (even? curIdx) (even? rowIdx))
+            (begin
+              (set! fileName (string-append inDir "/" inBName "-" (number->string (- numOfImg imgIdx)) ".png"))
+              (gimp-image-flatten curSlice)
+              (file-png-save-defaults RUN-NONINTERACTIVE curSlice (car (gimp-image-get-active-drawable curSlice)) fileName fileName)
+              (set! imgIdx (+ imgIdx 1))
+            )
+          )
+          (set! curIdx (+ curIdx 1))
+          (if (= (modulo curIdx 11) 0)
+            (begin
+              (set! rowIdx (+ rowIdx 1)) ; next row
+            )
+          )
+        )
+        (begin
+          (set! fileName (string-append inDir "/" inBName "-" (number->string (- numOfSlices curIdx)) ".png"))
+          (gimp-image-flatten curSlice)
+          (file-png-save-defaults RUN-NONINTERACTIVE curSlice (car (gimp-image-get-active-drawable curSlice)) fileName fileName)
+          (set! curIdx (+ curIdx 1))
+        )
+      )
       (gimp-image-delete curSlice)
-      (set! curIdx (+ curIdx 1))
     )
   )
 )
 
 ; calls the functions to set guides and to slice in one command
-(define (script-fu-ingress-banner-slice inImg inRows inRaster inResize inCrop inMask inBName inDir)
+(define (script-fu-ingress-banner-slice inImg inRows inRaster inGapSize inResize inCrop inMask inGaps inBName inDir)
   (let*
     (
     )
     ; prepare for slicing
-    (script-fu-ingress-banner-set-guides inImg inRows inRaster inResize inCrop inMask)
+    (script-fu-ingress-banner-set-guides inImg inRows inRaster inGapSize inResize inCrop inMask inGaps)
     ; slice!
-    (script-fu-ingress-slicer inImg inBName inDir)
+    (script-fu-ingress-slicer inImg inBName inDir inGaps)
   )
 )
 
 ; creates an new (empty) image the size, depending on raster and rows, and provides a fitting banner mask to work with.
-(define (script-fu-ingress-empty-image-with-mask inRows inRaster)
+(define (script-fu-ingress-empty-image-with-mask inRows inRaster inGapSize inGaps)
   (let*
     (
     (theImageWidth (* inRaster 6))
     (theImageHeight (* inRows inRaster))
-    (theImage (car (gimp-image-new theImageWidth theImageHeight RGB)))
+    (theImage 0)
     )
+    (if (= inGaps TRUE)
+      (begin
+        (set! theImageWidth (+ theImageWidth (* inGapSize 5)))
+        (set! theImageHeight (+ theImageHeight (* inGapSize (- inRows 1))))
+      )
+    )
+    (set! theImage (car (gimp-image-new theImageWidth theImageHeight RGB)))
     ; now show the empty image with no layers
     (gimp-display-new theImage)
     ; create banner mask
-    (script-fu-ingress-banner-mask theImage inRows inRaster)
+    (script-fu-ingress-banner-mask theImage inRows inRaster inGapSize inGaps)
   )
 )
 
@@ -253,6 +377,8 @@
   ""                                                           ; image type the script works on
   SF-ADJUSTMENT   "Number of Rows"  '(1 1 100 1 10 0 1)        ; number selection for # of rows
   SF-ADJUSTMENT   "Tile Raster"     '(512 500 1024 1 12 0 1)   ; the raster, default 512x512px
+  SF-ADJUSTMENT   "Gap size"        '(45 0 100 1 5 0 1)        ; the gap size, default 45 (new scanner)
+  SF-TOGGLE       "With gaps"       FALSE                      ; creates gaps between slices
 )
 
 (script-fu-register
@@ -268,6 +394,8 @@
   SF-IMAGE        "Current Image"   0                          ; the source image
   SF-ADJUSTMENT   "Number of Rows"  '(1 1 100 1 10 0 1)        ; number selection for # of rows
   SF-ADJUSTMENT   "Tile Raster"     '(512 500 1024 1 12 0 1)   ; the raster, default 512x512px
+  SF-ADJUSTMENT   "Gap size"        '(45 0 100 1 5 0 1)        ; the gap size, default 45 (new scanner)
+  SF-TOGGLE       "With gaps"       FALSE                      ; creates gaps between slices
 )
 
 (script-fu-register
@@ -283,9 +411,11 @@
   SF-IMAGE        "Current Image"   0                          ; the source image
   SF-ADJUSTMENT   "Number of Rows"  '(1 1 100 1 10 0 1)        ; number selection for # of rows
   SF-ADJUSTMENT   "Tile Raster"     '(512 500 1024 1 12 0 1)   ; the raster, default 512x512px
+  SF-ADJUSTMENT   "Gap size"        '(45 0 100 1 5 0 1)        ; the gap size, default 45 (new scanner)
   SF-TOGGLE       "Scale image to fit raster"  FALSE           ; scale image if it doesn't fit
   SF-TOGGLE       "[x] Crop/[ ] Extend height to fit"  FALSE   ; crop or extend image at the bottom
   SF-TOGGLE       "Create Banner Mask" FALSE                   ; creates a banner mask
+  SF-TOGGLE       "With gaps"       FALSE                      ; creates gaps between slices
 )
 
 (script-fu-register
@@ -299,6 +429,7 @@
   SF-IMAGE        "Current Image"   0                          ; the source image
   SF-STRING       "Slice basename"  "bannername"               ; basename for slice files
   SF-DIRNAME      "Save in..."      gimp-data-directory        ; storage directory
+  SF-TOGGLE       "With gaps"       FALSE                      ; creates gaps between slices
 )
 
 (script-fu-register
@@ -315,9 +446,11 @@
   SF-IMAGE        "Current Image"   0                          ; the source image
   SF-ADJUSTMENT   "Number of Rows"  '(1 1 100 1 10 0 1)        ; number selection for # of rows
   SF-ADJUSTMENT   "Tile Raster"     '(512 500 1024 1 12 0 1)   ; the raster, default 512x512px
+  SF-ADJUSTMENT   "Gap size"        '(45 0 100 1 5 0 1)        ; the gap size, default 45 (new scanner)
   SF-TOGGLE       "Scale image to fit raster"  FALSE           ; scale image if it doesn't fit
   SF-TOGGLE       "[x] Crop/[ ] Extend height to fit"  FALSE   ; crop or extend image at the bottom
   SF-TOGGLE       "Create Banner Mask" FALSE                   ; creates a banner mask
+  SF-TOGGLE       "With gaps"       FALSE                      ; creates gaps between slices
   SF-STRING       "Slice basename"  "bannername"               ; basename for slice files
   SF-DIRNAME      "Save in..."      gimp-data-directory        ; storage directory
 )
