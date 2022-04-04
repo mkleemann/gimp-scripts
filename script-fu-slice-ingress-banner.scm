@@ -377,7 +377,7 @@
   ""                                                           ; image type the script works on
   SF-ADJUSTMENT   "Number of Rows"  '(1 1 100 1 10 0 1)        ; number selection for # of rows
   SF-ADJUSTMENT   "Tile Raster"     '(512 500 1024 1 12 0 1)   ; the raster, default 512x512px
-  SF-ADJUSTMENT   "Gap size"        '(45 1 100 1 5 0 1)        ; the gap size, default 45 (new scanner)
+  SF-ADJUSTMENT   "Gap size"        '(28 1 100 1 5 0 1)        ; the gap size, default 45 (new scanner)
   SF-TOGGLE       "With gaps"       FALSE                      ; creates gaps between slices
 )
 
@@ -394,7 +394,7 @@
   SF-IMAGE        "Current Image"   0                          ; the source image
   SF-ADJUSTMENT   "Number of Rows"  '(1 1 100 1 10 0 1)        ; number selection for # of rows
   SF-ADJUSTMENT   "Tile Raster"     '(512 500 1024 1 12 0 1)   ; the raster, default 512x512px
-  SF-ADJUSTMENT   "Gap size"        '(45 1 100 1 5 0 1)        ; the gap size, default 45 (new scanner)
+  SF-ADJUSTMENT   "Gap size"        '(28 1 100 1 5 0 1)        ; the gap size, default 45 (new scanner)
   SF-TOGGLE       "With gaps"       FALSE                      ; creates gaps between slices
 )
 
@@ -411,7 +411,7 @@
   SF-IMAGE        "Current Image"   0                          ; the source image
   SF-ADJUSTMENT   "Number of Rows"  '(1 1 100 1 10 0 1)        ; number selection for # of rows
   SF-ADJUSTMENT   "Tile Raster"     '(512 500 1024 1 12 0 1)   ; the raster, default 512x512px
-  SF-ADJUSTMENT   "Gap size"        '(45 1 100 1 5 0 1)        ; the gap size, default 45 (new scanner)
+  SF-ADJUSTMENT   "Gap size"        '(28 1 100 1 5 0 1)        ; the gap size, default 45 (new scanner)
   SF-TOGGLE       "Scale image to fit raster"  FALSE           ; scale image if it doesn't fit
   SF-TOGGLE       "[x] Crop/[ ] Extend height to fit"  FALSE   ; crop or extend image at the bottom
   SF-TOGGLE       "Create Banner Mask" FALSE                   ; creates a banner mask
@@ -420,7 +420,7 @@
 
 (script-fu-register
   "script-fu-ingress-slicer"                                   ; function name
-  "Ingress Slicer"                                             ; menu label
+  "Slice Only"                                                 ; menu label
   "Slices an image with guides and saves the slices."          ; description
   "999up"                                                      ; author
   "copyright 2022, 999up <dev@layer128.net>"                   ; copyright notice
@@ -434,7 +434,7 @@
 
 (script-fu-register
   "script-fu-ingress-banner-slice"                             ; function name
-  "Banner Slicer"                                              ; menu label
+  "Banner Setup and Slicer"                                    ; menu label
   "Creates guides, slices an image and saves\
    the slices using the given name and a counter.\
    If necessary it crops or extends the image to\
@@ -446,7 +446,7 @@
   SF-IMAGE        "Current Image"   0                          ; the source image
   SF-ADJUSTMENT   "Number of Rows"  '(1 1 100 1 10 0 1)        ; number selection for # of rows
   SF-ADJUSTMENT   "Tile Raster"     '(512 500 1024 1 12 0 1)   ; the raster, default 512x512px
-  SF-ADJUSTMENT   "Gap size"        '(45 1 100 1 5 0 1)        ; the gap size, default 45 (new scanner)
+  SF-ADJUSTMENT   "Gap size"        '(28 1 100 1 5 0 1)        ; the gap size, default 45 (new scanner)
   SF-TOGGLE       "Scale image to fit raster"  FALSE           ; scale image if it doesn't fit
   SF-TOGGLE       "[x] Crop/[ ] Extend height to fit"  FALSE   ; crop or extend image at the bottom
   SF-TOGGLE       "Create Banner Mask" FALSE                   ; creates a banner mask
@@ -461,7 +461,7 @@
 (script-fu-menu-register "script-fu-ingress-banner-set-guides" "<Image>/Tools/Ingress")
 (script-fu-menu-register "script-fu-ingress-empty-image-with-mask" "<Image>/Tools/Ingress")
 (script-fu-menu-register "script-fu-ingress-banner-slice" "<Image>/Tools/Ingress")
+(script-fu-menu-register "script-fu-ingress-slicer" "<Image>/Tools/Ingress")
 
 ; ---- Test only ----
 ;(script-fu-menu-register "script-fu-ingress-banner-mask" "<Image>/Tools/Ingress")
-;(script-fu-menu-register "script-fu-ingress-slicer" "<Image>/Tools/Ingress")
