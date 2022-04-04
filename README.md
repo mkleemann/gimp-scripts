@@ -5,8 +5,8 @@ or may not increase, but I'll show-off some of the stuff I did.
 
 ## Ingress Banner Slicer
 
-Never heard of [Ingress](https://ingress.com)? This script may not for you. But who knows, it might
-be of use for slicing images into rows of 6 tiles with or without gaps between. The intention is to
+Never heard of [Ingress](https://ingress.com)? This script may not be for you. But who knows, it might
+be of use for slicing images into rows of 6 tiles with or without gaps between them. The intention is to
 prepare images for [Ingress](https://ingress.com) mission banners, the favorite way to do missions,
 to show in your agent profile within the scanner app. An overview of already created banners can be
 found at [Bannergress](https://bannergress.com).
