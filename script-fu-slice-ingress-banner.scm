@@ -6,7 +6,7 @@
 ; ================= The function bodies - it's where the work is done ================
 
 ; creates a mask to show the content of the single badges when shown in the scanner application.
-(define (script-fu-ingress-banner-mask inImg inRows inRaster inGapSize inGaps)
+(define (script-fu-ingress-banner-mask inImg inRows inRaster inGapSize inGaps inRingVisible)
   (let* (
         (bannerRows inRows)
         (theRaster inRaster)
@@ -14,6 +14,7 @@
         (imgHeight (car (gimp-image-height inImg)))
         (imgWidth (car (gimp-image-width inImg)))
         (maskLayer (car (gimp-layer-new inImg imgWidth imgHeight RGBA-IMAGE "Banner Mask" 95 LAYER-MODE-NORMAL)))
+        (ringLayer (car (gimp-layer-new inImg imgWidth imgHeight RGBA-IMAGE "Ring Mask" 100 LAYER-MODE-NORMAL)))
         )
     ; set defaults for context
     (gimp-context-push)
@@ -23,6 +24,7 @@
 
     (gimp-image-insert-layer inImg maskLayer 0 0)       ; insert layer above all
     (gimp-layer-add-alpha maskLayer)                    ; it already should have alpha, but...
+    (gimp-layer-add-alpha ringLayer)                    ; it already should have alpha, but...
     (gimp-drawable-fill maskLayer FILL-FOREGROUND)      ; fill with default foreground (black)
 
     ; select cut-out
@@ -57,9 +59,26 @@
         (set! cntCols 6)                                ; start over columns
       )
     )
-    ; cut out the selection
+    ; cut out the selection to create the basic mask
     (gimp-edit-cut maskLayer)
-    (gimp-selection-none inImg) ; remove any selections
+
+    ; now create the rings (separate layer for switching them off or on)
+    (gimp-image-insert-layer inImg ringLayer 0 0)       ; insert layer above all
+    (gimp-context-set-foreground '(245 167 64))         ; "golden" #F5A740
+    (gimp-edit-bucket-fill ringLayer
+                           BUCKET-FILL-FG
+                           LAYER-MODE-NORMAL
+                           100
+                           0
+                           FALSE
+                           0
+                           0)                           ; fill selection with foreground (golden)
+    (gimp-selection-shrink inImg 
+                           (* 8 (/ theRaster 512)))     ; shrink layer 8px@512px raster (depending on aspect ratio)
+    (gimp-edit-cut ringLayer)                           ; cut inner selection of ring
+    (gimp-drawable-set-visible ringLayer inRingVisible) ; set ring layer visible or not, depending on input
+
+    (gimp-selection-none inImg)                         ; remove any selections
 
     ; cleanup
     (gimp-image-undo-group-end inImg)
@@ -224,7 +243,7 @@
     ; now create a mask, if necessary
     (if (= createMask TRUE)
       (begin
-        (script-fu-ingress-banner-mask inImg bannerRows theRaster inGapSize inGaps)
+        (script-fu-ingress-banner-mask inImg bannerRows theRaster inGapSize inGaps FALSE)
       )
     )
 
@@ -343,7 +362,7 @@
 )
 
 ; creates an new (empty) image the size, depending on raster and rows, and provides a fitting banner mask to work with.
-(define (script-fu-ingress-empty-image-with-mask inRows inRaster inGapSize inGaps)
+(define (script-fu-ingress-empty-image-with-mask inRows inRaster inGapSize inGaps inRingVisible)
   (let*
     (
     (theImageWidth (* inRaster 6))
@@ -360,7 +379,7 @@
     ; now show the empty image with no layers
     (gimp-display-new theImage)
     ; create banner mask
-    (script-fu-ingress-banner-mask theImage inRows inRaster inGapSize inGaps)
+    (script-fu-ingress-banner-mask theImage inRows inRaster inGapSize inGaps inRingVisible)
   )
 )
 
@@ -378,8 +397,9 @@
   ""                                                           ; image type the script works on
   SF-ADJUSTMENT   "Number of Rows"  '(1 1 100 1 10 0 1)        ; number selection for # of rows
   SF-ADJUSTMENT   "Tile Raster"     '(512 500 1024 1 12 0 1)   ; the raster, default 512x512px
-  SF-ADJUSTMENT   "Gap size"        '(32 1 100 1 5 0 1)        ; the gap size, default 45 (new scanner)
-  SF-TOGGLE       "With gaps"       FALSE                      ; creates gaps between slices
+  SF-ADJUSTMENT   "Gap size"        '(32 1 100 1 5 0 1)        ; the gap size, default 32 (new scanner)
+  SF-TOGGLE       "With gaps"       TRUE                       ; creates gaps between slices
+  SF-TOGGLE       "Rings visible"   FALSE                      ; select visibility of ring layer
 )
 
 (script-fu-register
@@ -395,8 +415,9 @@
   SF-IMAGE        "Current Image"   0                          ; the source image
   SF-ADJUSTMENT   "Number of Rows"  '(1 1 100 1 10 0 1)        ; number selection for # of rows
   SF-ADJUSTMENT   "Tile Raster"     '(512 500 1024 1 12 0 1)   ; the raster, default 512x512px
-  SF-ADJUSTMENT   "Gap size"        '(32 1 100 1 5 0 1)        ; the gap size, default 45 (new scanner)
+  SF-ADJUSTMENT   "Gap size"        '(32 1 100 1 5 0 1)        ; the gap size, default 32 (new scanner)
   SF-TOGGLE       "With gaps"       FALSE                      ; creates gaps between slices
+  SF-TOGGLE       "Rings visible"   FALSE                      ; select visibility of ring layer
 )
 
 (script-fu-register
@@ -412,7 +433,7 @@
   SF-IMAGE        "Current Image"   0                          ; the source image
   SF-ADJUSTMENT   "Number of Rows"  '(1 1 100 1 10 0 1)        ; number selection for # of rows
   SF-ADJUSTMENT   "Tile Raster"     '(512 500 1024 1 12 0 1)   ; the raster, default 512x512px
-  SF-ADJUSTMENT   "Gap size"        '(32 1 100 1 5 0 1)        ; the gap size, default 45 (new scanner)
+  SF-ADJUSTMENT   "Gap size"        '(32 1 100 1 5 0 1)        ; the gap size, default 32 (new scanner)
   SF-TOGGLE       "Scale image to fit raster"  FALSE           ; scale image if it doesn't fit
   SF-TOGGLE       "[x] Crop/[ ] Extend height to fit"  FALSE   ; crop or extend image at the bottom
   SF-TOGGLE       "Create Banner Mask" FALSE                   ; creates a banner mask
@@ -447,11 +468,11 @@
   SF-IMAGE        "Current Image"   0                          ; the source image
   SF-ADJUSTMENT   "Number of Rows"  '(1 1 100 1 10 0 1)        ; number selection for # of rows
   SF-ADJUSTMENT   "Tile Raster"     '(512 500 1024 1 12 0 1)   ; the raster, default 512x512px
-  SF-ADJUSTMENT   "Gap size"        '(32 1 100 1 5 0 1)        ; the gap size, default 45 (new scanner)
+  SF-ADJUSTMENT   "Gap size"        '(32 1 100 1 5 0 1)        ; the gap size, default 32 (new scanner)
   SF-TOGGLE       "Scale image to fit raster"  FALSE           ; scale image if it doesn't fit
   SF-TOGGLE       "[x] Crop/[ ] Extend height to fit"  FALSE   ; crop or extend image at the bottom
   SF-TOGGLE       "Create Banner Mask" FALSE                   ; creates a banner mask
-  SF-TOGGLE       "With gaps"       FALSE                      ; creates gaps between slices
+  SF-TOGGLE       "With gaps"       TRUE                       ; creates gaps between slices
   SF-STRING       "Slice basename"  "bannername"               ; basename for slice files
   SF-DIRNAME      "Save in..."      gimp-data-directory        ; storage directory
 )
