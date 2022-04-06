@@ -37,7 +37,7 @@ Since all other commands follow the same options, the overall description is thi
 * Create Banner Mask
   * Since the tiles are shown as round images in the scanner app, it provides a mask to show what it would look like in your profile. There is an additional (invisible) layer with the "rings". It can be made visible in the layer options in GIMP.
 * With gaps
-  * Choose gaps between the tiles. The default of 28px meets the usually used value for the current scanner app.
+  * Choose gaps between the tiles. The default of 32px meets the usually used value for the current scanner app.
 * Slice basename
   * Name used for saving the tiles as file with the scheme _basename-#_.
 * Save in...
