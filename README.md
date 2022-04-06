@@ -31,11 +31,11 @@ Since all other commands follow the same options, the overall description is thi
 * Gap Size
   * Size of the gaps between tiles (vertical and horizontal) in px, when choosing the _with gaps_ option.
 * Scale image to fit raster
-  * The image may to large/small to fit the choosen raster including possible gaps. It will be resized to match that with precedence on width. Aspect ratio will be preserved.
+  * The image may be too large/small to fit the chosen raster including possible gaps. It will be resized to match that with precedence on width. Aspect ratio will be preserved.
 * Crop/Extend height to fit
   * Crops the height at the maximum number of complete rows or extends the image with partly filled and/or empty tiles on the bottom meeting the set number of rows.
 * Create Banner Mask
-  * Since the tiles are shown as round images in the scanner app, it provides a mask to show what it would look like in your profile.
+  * Since the tiles are shown as round images in the scanner app, it provides a mask to show what it would look like in your profile. There is an additional (invisible) layer with the "rings". It can be made visible in the layer options in GIMP.
 * With gaps
   * Choose gaps between the tiles. The default of 28px meets the usually used value for the current scanner app.
 * Slice basename
@@ -44,19 +44,19 @@ Since all other commands follow the same options, the overall description is thi
   * The directory to store the tile files in.
 
 ### Create Empty Image With Mask
-This simply creates an empty image, the size reflecting the setup in raster and gaps, and adds a banner mask
-layer to it. This can be used to start work on your individual banner.
+This simply creates an empty image, the size reflecting the setup in raster and gaps, and adds the banner mask
+layers to it. This can be used to start work on your individual banner.
 
 ### Set Banner Guides
-For slicing the image, guides are used in GIMP. This is to create them according to your setup, including
+For slicing the image, guides are used in GIMP. This function is used to create them according to your setup, including
 rescaling of your image, if chosen.
 
 __ATTENTION__: Remove all guides set prior, if you want to slice using this script. An automatic removal is
 not possible at this time, since the built-in functions of GIMP (2.10) mess with undo stack doing so. Especially
-when using gaps you need to only use guides provided by this script.
+when using gaps you only have to use guides provided by this script.
 
 ### Slice Only
 It slices the image using the guides set in _Set Banner Guides_ and stores the tiles into separate files
-according to the naming scheme described above.
+according to the naming scheme described above. This function requires the guides to be set along the scheme used by this script, so better use the _Set Banner Guides_ functionality.
 
 Have fun!
