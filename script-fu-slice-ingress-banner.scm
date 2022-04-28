@@ -309,6 +309,10 @@
     (rowIdx 0)
     (numOfImg numOfSlices)
     (fileName inBName)
+    (padding "")
+    (numOfDigits 0)
+    (curImgNum 0)
+    (padIdx 0)
     )
     ; get the number of images we want to keep, if gaps are present
     (if (= inGaps TRUE)
@@ -324,7 +328,18 @@
         (begin
           (if (and (even? curIdx) (even? rowIdx))
             (begin
-              (set! fileName (string-append inDir "/" inBName "-" (number->string (- numOfImg imgIdx)) ".png"))
+              (set! curImgNum (- numOfImg imgIdx))                            ; the current number of the image
+              (set! numOfDigits (string-length (number->string curImgNum)))   ; the current number of digits the image number has
+              (set! padding "")                                               ; set it to default again
+              ; add padding acc. to the max and current digits
+              (set! padIdx (- (string-length (number->string numOfImg)) numOfDigits))
+
+              (while (> padIdx 0)                                             ; add padding as far as needed
+                (set! padding (string-append "0" padding))
+                (set! padIdx (- padIdx 1))
+              )
+
+              (set! fileName (string-append inDir "/" inBName "-" padding (number->string curImgNum) ".png"))
               (gimp-image-flatten curSlice)
               (file-png-save-defaults RUN-NONINTERACTIVE curSlice (car (gimp-image-get-active-drawable curSlice)) fileName fileName)
               (set! imgIdx (+ imgIdx 1))
@@ -337,8 +352,19 @@
             )
           )
         )
-        (begin
-          (set! fileName (string-append inDir "/" inBName "-" (number->string (- numOfSlices curIdx)) ".png"))
+       (begin
+          (set! curImgNum (- numOfSlices curIdx))                             ; the current number of the image
+          (set! numOfDigits (string-length (number->string curImgNum)))       ; the current number of digits the image number has
+          (set! padding "")                                                   ; set it to default again
+          ; add padding acc. to the max and current digits
+          (set! padIdx (- (string-length (number->string numOfImg)) numOfDigits))
+
+          (while (> padIdx 0)                                                 ; add padding as far as needed
+            (set! padding (string-append "0" padding))
+            (set! padIdx (- padIdx 1))
+          )
+
+          (set! fileName (string-append inDir "/" inBName "-" padding (number->string curImgNum) ".png"))
           (gimp-image-flatten curSlice)
           (file-png-save-defaults RUN-NONINTERACTIVE curSlice (car (gimp-image-get-active-drawable curSlice)) fileName fileName)
           (set! curIdx (+ curIdx 1))
