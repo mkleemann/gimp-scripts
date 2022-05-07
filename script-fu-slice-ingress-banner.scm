@@ -13,14 +13,18 @@
         (cntCols 6)
         (imgHeight (car (gimp-image-height inImg)))
         (imgWidth (car (gimp-image-width inImg)))
-        (maskLayer (car (gimp-layer-new inImg imgWidth imgHeight RGBA-IMAGE "Banner Mask" 95 LAYER-MODE-NORMAL)))
-        (ringLayer (car (gimp-layer-new inImg imgWidth imgHeight RGBA-IMAGE "Ring Mask" 100 LAYER-MODE-NORMAL)))
+        (maskLayer 0)
+        (ringLayer 0)
         )
+
     ; set defaults for context
     (gimp-context-push)
     (gimp-context-set-defaults)
     (gimp-image-undo-group-start inImg)
-    (gimp-selection-none inImg) ; remove any selections
+    (gimp-selection-none inImg)                         ; remove any selections
+    (gimp-image-convert-rgb inImg)                      ; convert image to RGB for next oprations
+    (set! maskLayer (car (gimp-layer-new inImg imgWidth imgHeight RGBA-IMAGE "Banner Mask" 95 LAYER-MODE-NORMAL)))
+    (set! ringLayer (car (gimp-layer-new inImg imgWidth imgHeight RGBA-IMAGE "Ring Mask" 100 LAYER-MODE-NORMAL)))
 
     (gimp-image-insert-layer inImg maskLayer 0 0)       ; insert layer above all
     (gimp-layer-add-alpha maskLayer)                    ; it already should have alpha, but...
@@ -352,7 +356,7 @@
             )
           )
         )
-       (begin
+        (begin
           (set! curImgNum (- numOfSlices curIdx))                             ; the current number of the image
           (set! numOfDigits (string-length (number->string curImgNum)))       ; the current number of digits the image number has
           (set! padding "")                                                   ; set it to default again
@@ -437,7 +441,7 @@
   "999up"                                                      ; author
   "copyright 2022, 999up <dev@layer128.net>"                   ; copyright notice
   "31.03.2022"                                                 ; creation date
-  "RGB*"                                                       ; image type the script works on
+  "RGB* GRAY* INDEXED*"                                        ; image type the script works on
   SF-IMAGE        "Current Image"   0                          ; the source image
   SF-ADJUSTMENT   "Number of Rows"  '(1 1 100 1 10 0 1)        ; number selection for # of rows
   SF-ADJUSTMENT   "Tile Raster"     '(512 500 1024 1 12 0 1)   ; the raster, default 512x512px
@@ -455,7 +459,7 @@
   "999up"                                                      ; author
   "copyright 2022, 999up <dev@layer128.net>"                   ; copyright notice
   "31.03.2022"                                                 ; creation date
-  "RGB*"                                                       ; image type the script works on
+  "RGB* GRAY* INDEXED*"                                        ; image type the script works on
   SF-IMAGE        "Current Image"   0                          ; the source image
   SF-ADJUSTMENT   "Number of Rows"  '(1 1 100 1 10 0 1)        ; number selection for # of rows
   SF-ADJUSTMENT   "Tile Raster"     '(512 500 1024 1 12 0 1)   ; the raster, default 512x512px
@@ -473,7 +477,7 @@
   "999up"                                                      ; author
   "copyright 2022, 999up <dev@layer128.net>"                   ; copyright notice
   "30.03.2022"                                                 ; creation date
-  "RGB*"                                                       ; image type the script works on
+  "RGB* GRAY* INDEXED*"                                        ; image type the script works on
   SF-IMAGE        "Current Image"   0                          ; the source image
   SF-STRING       "Slice basename"  "bannername"               ; basename for slice files
   SF-DIRNAME      "Save in..."      gimp-data-directory        ; storage directory
@@ -490,7 +494,7 @@
   "999up"                                                      ; author
   "copyright 2022, 999up <dev@layer128.net>"                   ; copyright notice
   "30.03.2022"                                                 ; creation date
-  "RGB*"                                                       ; image type the script works on
+  "RGB* GRAY* INDEXED*"                                        ; image type the script works on
   SF-IMAGE        "Current Image"   0                          ; the source image
   SF-ADJUSTMENT   "Number of Rows"  '(1 1 100 1 10 0 1)        ; number selection for # of rows
   SF-ADJUSTMENT   "Tile Raster"     '(512 500 1024 1 12 0 1)   ; the raster, default 512x512px
