@@ -11,6 +11,7 @@
         (bannerRows inRows)
         (theRaster inRaster)
         (cntCols 6)
+        (imgType (car (gimp-image-base-type inImg)))
         (imgHeight (car (gimp-image-height inImg)))
         (imgWidth (car (gimp-image-width inImg)))
         (maskLayer 0)
@@ -22,7 +23,11 @@
     (gimp-context-set-defaults)
     (gimp-image-undo-group-start inImg)
     (gimp-selection-none inImg)                         ; remove any selections
-    (gimp-image-convert-rgb inImg)                      ; convert image to RGB for next oprations
+    (if (> imgType RGB)
+      (begin
+        (gimp-image-convert-rgb inImg)                  ; convert image to RGB for next oprations
+      )
+    )
     (set! maskLayer (car (gimp-layer-new inImg imgWidth imgHeight RGBA-IMAGE "Banner Mask" 95 LAYER-MODE-NORMAL)))
     (set! ringLayer (car (gimp-layer-new inImg imgWidth imgHeight RGBA-IMAGE "Ring Mask" 100 LAYER-MODE-NORMAL)))
 
@@ -77,7 +82,7 @@
                            FALSE
                            0
                            0)                           ; fill selection with foreground (golden)
-    (gimp-selection-shrink inImg 
+    (gimp-selection-shrink inImg
                            (* 8 (/ theRaster 512)))     ; shrink layer 8px@512px raster (depending on aspect ratio)
     (gimp-edit-cut ringLayer)                           ; cut inner selection of ring
     (gimp-drawable-set-visible ringLayer inRingVisible) ; set ring layer visible or not, depending on input
@@ -238,11 +243,8 @@
         (set! imgHeight rasterHeight)
       )
     )
-;    (gimp-message (string-append "Width: " (number->string imgWidth) " Height: " (number->string imgHeight)))
 
     (gimp-image-resize inImg imgWidth imgHeight 0 0)
-
-;    (gimp-message "Resize done!")
 
     ; now create a mask, if necessary
     (if (= createMask TRUE)
